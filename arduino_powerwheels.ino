@@ -1,5 +1,3 @@
-// Variables, Defines
-/*****************************************************************************************************************************************/
 // Direction
 #define forward 1
 #define stopped 0
@@ -15,13 +13,13 @@
 #define ON  LOW
 
 // Input pin definitions
-#define fwdpin1 49  // Low speed
-#define fwdpin2 51 // High speed
-#define revpin  48  // Reverse
+#define fwdpin1 4  // Low speed
+#define fwdpin2 6  // High speed
+#define revpin  2  // Reverse
 
 // Output pin definitions
 #define fwdpwm 9   // PWM for forward
-#define revpwm 10  // PWM for reverse
+#define revpwm 11  // PWM for reverse
 
 // Variables
 int currentmode=stopped;  // To store current direction of motion
@@ -40,7 +38,7 @@ bool turnonBlinking = false;
 // Value for delay when changing direction without stopping first
 #define directionchangedelay 500
 
-// values for maximum commanded motor speed (maximum is 255 for forward directions, and -255 for reverse)
+// values for maximum commanded motor speed (maximum is 255)
 #define maxfwd1 128
 #define maxfwd2 255
 #define maxrev  110
