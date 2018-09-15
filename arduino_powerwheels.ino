@@ -25,9 +25,9 @@
 
 // Variables
 int currentmode=stopped;  // To store current direction of motion
-int pwmspeed=0;            // To store current commanded speed: value may be from -255 (reverse) to 255 (forward). Zero means stopped
-byte command=0;              // to store Commands
-byte prevcommand =0 ;     //for blinking debuging
+int pwmspeed=0;           // To store current commanded speed: value may be from 0 to 255. Zero means stopped
+byte command=0;           // to store Commands
+byte prevcommand =0 ;     // for blinking debuging
 bool blink = true;
 bool turnonBlinking = false;
 
@@ -41,9 +41,12 @@ bool turnonBlinking = false;
 #define directionchangedelay 500
 
 // values for maximum commanded motor speed (maximum is 255 for forward directions, and -255 for reverse)
-#define maxfwd1  128
-#define maxfwd2  255
-#define maxrev  -110
+#define maxfwd1 128
+#define maxfwd2 255
+#define maxrev  110
+
+/* prototype to allow default value */
+void slowdown(bool penalty=false);
 
 /*****************************************************************************************************************************************/
  
@@ -87,17 +90,15 @@ void loop()
    if (command != prevcommand) //this basically sets it to only blink one time when the command state changes.
    {
       prevcommand=command;
-      blink=true;
+      if (0 <= cmd_none && command <= cmd_rev)
+      {
+          blinkLight(command);
+      }
    }
    switch(command)
    {
       case cmd_none:
          {
-            if(blink)
-            {
-               blinkLight(1);
-               blink=false;
-            }
             if(currentmode != stopped)
             {
                slowdown();
@@ -106,40 +107,25 @@ void loop()
          }
       case cmd_fwdlo:
          {
-            if(blink)
-            {
-               blinkLight(2);
-               blink=false;
-            }
             forwardlo();
             break;
          }
       case cmd_fwdhi:
          {
-            if(blink)
-            {
-               blinkLight(3);
-               blink=false;
-            }
             forwardhi();
             break;
          }
       case cmd_rev:
          {
-            if(blink)
-            {
-               blinkLight(4);
-               blink=false;
-            }
             reverselo();
             break;
          }
       default:
          {
             //Error! ALL STOP!
-            allstop(); //let's stop before blinking the light :-)
+            allstop(); // stop *before* blinking the light
             blinkLight(5); 
-         
+            delay(3000); // delay before starting up again
             break;
          }
    }
@@ -166,26 +152,21 @@ int readCommand() // Read the input pins and return a value for the current inpu
 }
 /*****************************************************************************************************************************************/
 /*****************************************************************************************************************************************/
-void slowdown() // slows vehicle down when pedal is released
+void slowdown(bool penalty)
 {
-   
-   if(pwmspeed>0) // motor is currently set to forward
+   pwmspeed-=decel_rate;
+   if(pwmspeed<0)
    {
-      pwmspeed-=decel_rate;
-      if(pwmspeed<0)
-      {
-         pwmspeed=0;
-      }
-   } 
-   else if(pwmspeed<0) // motor is current set to reverse 
-   {
-      pwmspeed+=decel_rate;
-      if(pwmspeed>0)
-      {
-         pwmspeed=0;
-      }
+      pwmspeed=0;
    }
+
    commandMotor();
+
+   // enforced when lever is changed direction and pedal is pressed before vehicle has come to a stop.
+   if(penalty && pwmspeed==0) // add a delay (that'll teach 'em not to mess around with the lever!)
+   {
+      delay(directionchangedelay);
+   }
 }
 /*****************************************************************************************************************************************/
 void forwardlo() // moves vehicle foward up to low speed maximum
@@ -198,7 +179,7 @@ void forwardlo() // moves vehicle foward up to low speed maximum
    } 
    else if(currentmode==reverse) // go from reverse to fwd 1
    {
-      brake();
+      slowdown(true);
    } 
    else if(pwmspeed>maxfwd1) // slow from fwd2 down to fwd1
    {
@@ -220,7 +201,7 @@ void forwardhi()
    } 
    else if(currentmode==reverse) // go from reverse to fwd2
    { 
-      brake();
+      slowdown(true);
    } 
    else if(pwmspeed<maxfwd2)
    {   // continue to accelerate to fwd2
@@ -237,9 +218,9 @@ void reverselo()
    } 
    else if(currentmode==forward) // go from fwd1/2 to reverse
    {
-      brake();
+      slowdown(true);
    } 
-   else if(pwmspeed>maxrev)        // continue to accelerate to reverse
+   else if(pwmspeed<maxrev)        // continue to accelerate to reverse
    {
       acceleratelo();           // change to acceratehi() if you want to reverse at a quicker rate!
    }
@@ -250,62 +231,21 @@ void allstop() // Emergency brake! Used when Error condition detected
    pwmspeed=0;
    commandMotor();
    currentmode=stopped;
-   delay(3000); // delay before starting up again
 }
 /*****************************************************************************************************************************************/
 /*****************************************************************************************************************************************/
 void acceleratehi()// First gear! (also may be used for reverse if you want to reverse faster)
 {
    
-   if(currentmode==forward)
-   { 
-      pwmspeed+=accel_ratehi;
-   } 
-   else 
-   {
-      pwmspeed-=accel_ratehi;
-   }
+   pwmspeed+=accel_ratehi;
    commandMotor();
 }
 /*****************************************************************************************************************************************/
 void acceleratelo() // Second gear! (hence lower acceleration); note, also used for reverse
 {
-   if(currentmode==forward)
-   {
-      pwmspeed+=accel_ratelo;
-   } 
-   else 
-   {
-      pwmspeed-=accel_ratelo;
-   }
+   pwmspeed+=accel_ratelo;
    commandMotor();
 }
-/*****************************************************************************************************************************************/
-void brake(){
-   // Stop at high rate, used when lever is changed direction and pedal is pressed before vehicle has come to a stop.
-   if(pwmspeed>0)  // slow from forward direction
-   {
-      pwmspeed-=brake_rate;
-      if(pwmspeed<0)
-      {
-         pwmspeed=0;
-      }
-   } 
-   else if(pwmspeed<0)  // slow from reverse direction
-   {
-      pwmspeed+=brake_rate;
-      if(pwmspeed>0)
-      {
-         pwmspeed=0;
-      }
-   }
-   commandMotor();
-   if(pwmspeed==0) // add a delay (that'll teach 'em not to mess around with the lever!)
-   {
-      delay(directionchangedelay);
-   }
-}
-/* */
 
 void blinkLight(int times)
 {
@@ -317,15 +257,12 @@ void blinkLight(int times)
         delay(150);                       
         digitalWrite(LED_BUILTIN, LOW);  
         delay(150);
-        
      }
    }
 }
 
 
 
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
 void commandMotor()
 {
   
@@ -341,12 +278,6 @@ void commandMotor()
       pwmspeed=255;
    }
    
-   if (pwmspeed < -254) // same deal, except negative.
-   {
-      
-      pwmspeed = -255;
-   }
-   
    // send the command to the motor
    if(pwmspeed==0)
    {   // All stopped
@@ -354,7 +285,7 @@ void commandMotor()
       analogWrite(revpwm,0);
       currentmode=stopped;
    } 
-   else if(pwmspeed>0)
+   else if(currentmode==forward)
    {   // forward motion
       analogWrite(revpwm,0);
       analogWrite(fwdpwm,pwmspeed);
@@ -362,7 +293,7 @@ void commandMotor()
    else 
    {   // reverse motion
       analogWrite(fwdpwm,0);
-      analogWrite(revpwm,-1*pwmspeed); 
+      analogWrite(revpwm,pwmspeed);
    }
    delay(50); 
 }
