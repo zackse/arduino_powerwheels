@@ -72,20 +72,16 @@ void setup()
   // check out this site for lots more info: 
   // http://arduino-info.wikispaces.com/Arduino-PWM-Frequency
 
+  // D3 and D11
   //TCCR2B = TCCR2B & B11111000 | B00000010; //4 kHz uno
   //TCCR2B = TCCR2B & B11111000 | B00000001; //32 kHz uno
-  
-  TCCR2B = TCCR2B & B11111000 | B00000010; //4 khz mega 9&10
-
-  //FOR PINS PWM PINS 5&6 only....
-  //TCCR0B = TCCR0B & B11111000 | B00000010; 8 for PWM frequency of  7812.50 Hz
 }
   
 void loop()
 {
    //read the pin statuses
    command=readCommand();
-   if (command != prevcommand) //this basically sets it to only blink one time when the command state changes.
+   if (command != prevcommand) // only blink one time when the command state changes.
    {
       prevcommand=command;
       if (0 <= cmd_none && command <= cmd_rev)
