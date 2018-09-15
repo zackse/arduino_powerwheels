@@ -13,8 +13,8 @@
 #define ON  LOW
 
 // Input pin definitions
-#define fwdpin1 4  // Low speed
-#define fwdpin2 6  // High speed
+#define fwdpin1 5  // Low speed
+#define fwdpin2 4  // High speed
 #define revpin  2  // Reverse
 
 // Output pin definitions
@@ -132,7 +132,6 @@ int readCommand() // Read the input pins and return a value for the current inpu
    if(digitalRead(fwdpin1)==ON)
    {
       count+=1;
-      
    }
    if(digitalRead(fwdpin2)==ON)
    {
