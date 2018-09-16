@@ -84,7 +84,9 @@ void loop()
    if (command != prevcommand) // only blink one time when the command state changes.
    {
       prevcommand=command;
-      if (0 <= cmd_none && command <= cmd_rev)
+      // only blink before activating known comands --
+      // for an unknown command, stop first, then blink.
+      if (command <= cmd_rev)
       {
           blinkLight(command);
       }
